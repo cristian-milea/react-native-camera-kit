@@ -7,8 +7,10 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.SensorManager;
-import android.support.annotation.ColorInt;
-import android.support.annotation.IntRange;
+import androidx.annotation.ColorInt;
+import androidx.annotation.IntRange;
+
+import android.util.Log;
 import android.view.Display;
 import android.view.OrientationEventListener;
 import android.view.WindowManager;
@@ -48,6 +50,7 @@ public class CameraViewManager extends SimpleViewManager<CameraView> {
     private static AtomicBoolean cameraReleased = new AtomicBoolean(false);
 
     private static boolean shouldScan = false;
+    private static int maxZoomLevel = 1;
 
     private static BarcodeScanner scanner;
     private static Camera.PreviewCallback previewCallback = new Camera.PreviewCallback() {
@@ -63,6 +66,14 @@ public class CameraViewManager extends SimpleViewManager<CameraView> {
             });
         }
     };
+
+    public static void zoom(int zoomLevel) {
+        if (camera != null && !cameraReleased.get()) {
+            Camera.Parameters params = camera.getParameters();
+            params.setZoom(3 * zoomLevel);
+            camera.setParameters(params);
+        }
+    }
 
     public static Camera getCamera() {
         return camera;
@@ -81,6 +92,7 @@ public class CameraViewManager extends SimpleViewManager<CameraView> {
 
     static void setCameraView(CameraView cameraView) {
         if (!cameraViews.isEmpty() && cameraViews.peek() == cameraView) return;
+
         CameraViewManager.cameraViews.push(cameraView);
         connectHolder();
         createOrientationListener();
@@ -134,6 +146,7 @@ public class CameraViewManager extends SimpleViewManager<CameraView> {
         try {
             camera = Camera.open(currentCamera);
             updateCameraSize();
+            setupZoom();
             cameraReleased.set(false);
             setCameraRotation(currentRotation, true);
         } catch (RuntimeException e) {
@@ -249,6 +262,21 @@ public class CameraViewManager extends SimpleViewManager<CameraView> {
             }
         }
         return optimalSize;
+    }
+
+    private static void setupZoom() {
+        try {
+
+            Camera camera = CameraViewManager.getCamera();
+            Camera.Parameters parameters = camera.getParameters();
+            if (parameters.isSmoothZoomSupported() || parameters.isZoomSupported()) {
+                maxZoomLevel = parameters.getMaxZoom();
+                Log.d("maxZoomLevel", maxZoomLevel + "");
+            }
+
+        } catch (RuntimeException ignored) {
+
+        }
     }
 
     private static void updateCameraSize() {

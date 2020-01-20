@@ -2,7 +2,11 @@ package com.wix.RNCameraKit.camera;
 
 import android.graphics.Color;
 import android.graphics.Rect;
-import android.support.annotation.ColorInt;
+import androidx.annotation.ColorInt;
+
+import android.util.Log;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -22,6 +26,8 @@ public class CameraView extends FrameLayout implements SurfaceHolder.Callback {
     private BarcodeFrame barcodeFrame;
     @ColorInt private int frameColor = Color.GREEN;
     @ColorInt private int laserColor = Color.RED;
+    private ScaleGestureDetector mScaleDetector;
+    private float mScaleFactor = 1.f;
 
     public CameraView(ThemedReactContext context) {
         super(context);
@@ -29,6 +35,28 @@ public class CameraView extends FrameLayout implements SurfaceHolder.Callback {
         setBackgroundColor(Color.BLACK);
         addView(surface, MATCH_PARENT, MATCH_PARENT);
         surface.getHolder().addCallback(this);
+        mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+    }
+
+    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            mScaleFactor *= detector.getScaleFactor();
+
+            // Don't let the object get too small or too large.
+            mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
+            Log.d("scaling" , mScaleFactor + "");
+
+            CameraViewManager.zoom((int) mScaleFactor);
+
+            return true;
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        mScaleDetector.onTouchEvent(event);
+        return true;
     }
 
     @Override
